@@ -7,13 +7,17 @@
 //
 
 import UIKit
-import CoreData
+// import CoreData
+import RealmSwift
 
 class CategoryTableViewController: UITableViewController
 {
-    var categories = [Category]()
+    let realm = try! Realm()
     
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    var categories: Results<Category>?
+    
+    // context is part of CoreData
+//    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
 
     override func viewDidLoad()
@@ -25,7 +29,7 @@ class CategoryTableViewController: UITableViewController
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int
     {
-        return categories.count
+        return categories?.count ?? 1
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell
@@ -35,7 +39,7 @@ class CategoryTableViewController: UITableViewController
 //        cell.textLabel?.text = item.categoryName
         
         // same as above but simpler
-        cell.textLabel?.text = categories[indexPath.row].categoryName
+        cell.textLabel?.text = categories?[indexPath.row].categoryName ?? "No Categories Added Yet"
         
         return cell
     }
@@ -51,16 +55,22 @@ class CategoryTableViewController: UITableViewController
         
         if let indexPath = tableView.indexPathForSelectedRow
         {
-            destinationVC.selectedCategory = categories[indexPath.row]
+            destinationVC.selectedCategory = categories?[indexPath.row]
         }
         
     }
     
-    func saveCategories()
+    // with CoreData, this did not have parameters
+    func saveCategories(Category: Category)
     {
         do
         {
-            try context.save()
+            try realm.write
+            {
+                realm.add(Category)
+            }
+            // this is previous CoreData method
+//            try context.save()
         }
         catch
         {
@@ -82,14 +92,20 @@ class CategoryTableViewController: UITableViewController
             // what will happen once user clicks the Add Item button on our UIalert
             print(textField.text!)
             
+            let newCategory = Category()
             
+            // this line is the previous way of implementing CoreData
+            //let newCategory = Category(context: self.context)
             
-            let newCategory = Category(context: self.context)
             newCategory.categoryName = textField.text!
             
-            self.categories.append(newCategory)
+            // old CoreData type, Realm (results) will autoupdate
+//            self.categories.append(newCategory)
             
-            self.saveCategories()
+            self.saveCategories(Category: newCategory)
+            
+            // previous implementation of CoreData
+            //self.saveCategories()
             
         }
         
@@ -103,19 +119,23 @@ class CategoryTableViewController: UITableViewController
         present(alert, animated: true, completion: nil)
     }
     
-    
-    func loadCategories(with request : NSFetchRequest<Category> = Category.fetchRequest())
+    // this function previously had option parameter: with request : NSFetchRequest<Category> = Category.fetchRequest()
+    func loadCategories()
     {
+        // changed global categories to be results-type
+         categories = realm.objects(Category.self)
         
-        do
-        {
-            categories = try context.fetch(request)
-        }
-        catch
-        {
-            print("There was an error retrieving data: \(error)")
-        }
+        // this was the previous implementation of CoreData
+//        do
+//        {
+//            categories = try context.fetch(request)
+//        }
+//        catch
+//        {
+//            print("There was an error retrieving data: \(error)")
+//        }
         
+        tableView.reloadData()
     }
     
 }
